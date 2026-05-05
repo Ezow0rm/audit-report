@@ -1,0 +1,506 @@
+```html
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Финальный аудит 152-ФЗ: Актуализированные данные и рекомендации</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Chosen Palette: Warm Neutrals (Stone/Zinc) with Semantic Risk Colors (Rose/Amber/Emerald) for a calm, professional look -->
+    <!-- Application Structure Plan: 
+         - A comprehensive, interactive dashboard designed for both legal and technical teams.
+         - Left sidebar serves as a global context filter (Domain selection).
+         - Top section of the main view provides immediate executive clarity via Chart.js visualizations (Risk levels and Issue distribution).
+         - The lower section uses a tabbed interface to organize dense, technical data logically: Forms (highest risk area), Documents, Cookies/Trackers, and a highly actionable, prioritized Action Plan.
+         - This structure ensures the user isn't overwhelmed by text, can drill down into specific domains, and clearly sees what needs to be fixed first. -->
+    <!-- Visualization & Content Choices: 
+         - Doughnut Chart: Shows the severity of risks at a glance.
+         - Bar Chart: Shows which category of the website infrastructure needs the most attention.
+         - Tabular grids with HTML/CSS styling and Unicode icons for status indicators, ensuring accessibility and compliance with the NO SVG rule.
+         - Action Plan is visually grouped by priority for immediate task assignment. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: #fafaf9; /* Warm neutral background */
+            color: #292524;
+        }
+        
+        /* Strict Chart Container Styling per Requirements */
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 550px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 280px;
+            max-height: 350px;
+        }
+
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 320px;
+            }
+        }
+
+        /* Semantic Risk Badges */
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.6rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .badge-critical { background-color: #ffe4e6; color: #be123c; border: 1px solid #fda4af; }
+        .badge-high { background-color: #fef3c7; color: #b45309; border: 1px solid #fcd34d; }
+        .badge-medium { background-color: #fef9c3; color: #854d0e; border: 1px solid #fde047; }
+        .badge-low { background-color: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .badge-manual { background-color: #f5f5f4; color: #57534e; border: 1px solid #d6d3d1; }
+        
+        /* Interactive Tabs */
+        .tab-btn { transition: all 0.2s ease; border-bottom: 2px solid transparent; }
+        .tab-btn.active { border-bottom-color: #0f766e; color: #0f766e; font-weight: 600; background-color: #f0fdfa; }
+        .tab-btn:hover:not(.active) { color: #1c1917; background-color: #f5f5f4; }
+        
+        /* Custom Scrollbars for Data Tables */
+        .table-wrapper { overflow-x: auto; border-radius: 0.5rem; border: 1px solid #e7e5e4; background: #ffffff; }
+        .table-wrapper::-webkit-scrollbar { height: 6px; width: 6px; }
+        .table-wrapper::-webkit-scrollbar-track { background: #f5f5f4; border-radius: 3px; }
+        .table-wrapper::-webkit-scrollbar-thumb { background: #d6d3d1; border-radius: 3px; }
+        .table-wrapper::-webkit-scrollbar-thumb:hover { background: #a8a29e; }
+
+        th { background-color: #fafaf9; position: sticky; top: 0; z-index: 10; }
+    </style>
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Header -->
+    <header class="bg-white shadow-sm border-b border-stone-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h1 class="text-2xl font-bold text-stone-900">Аудит 152-ФЗ: Итоговый отчет</h1>
+                <p class="text-sm text-stone-500">Многократно выверенные данные и экспертные рекомендации</p>
+            </div>
+            <div class="flex items-center space-x-3">
+                <span class="text-xs text-stone-500 uppercase font-semibold">Статус:</span>
+                <span class="text-sm bg-teal-50 text-teal-700 py-1 px-3 rounded border border-teal-200 font-bold">Актуально</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex flex-col lg:flex-row gap-6">
+        
+        <!-- Sidebar Filter -->
+        <aside class="w-full lg:w-64 flex-shrink-0">
+            <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-5 sticky top-24">
+                <h2 class="text-sm font-bold text-stone-400 uppercase tracking-wider mb-4">Фильтр контекста</h2>
+                <ul class="space-y-1.5" id="domain-selector">
+                    <li><button data-domain="all" class="domain-btn w-full text-left px-3 py-2.5 rounded-lg bg-stone-100 text-stone-800 font-semibold transition-colors">🌐 Все домены</button></li>
+                    <li><button data-domain="npfprof.ru" class="domain-btn w-full text-left px-3 py-2.5 rounded-lg hover:bg-stone-50 text-stone-600 transition-colors">📄 npfprof.ru</button></li>
+                    <li><button data-domain="am-ese.ru" class="domain-btn w-full text-left px-3 py-2.5 rounded-lg hover:bg-stone-50 text-stone-600 transition-colors">🏢 am-ese.ru</button></li>
+                    <li><button data-domain="elementallab.ru" class="domain-btn w-full text-left px-3 py-2.5 rounded-lg hover:bg-stone-50 text-stone-600 transition-colors">🧪 elementallab.ru</button></li>
+                </ul>
+                
+                <div class="mt-6 p-4 bg-amber-50 border-l-4 border-amber-400 rounded-r text-xs text-amber-800 leading-relaxed">
+                    <p><strong>⚠️ Примечание эксперта:</strong> Данные сверены. Подтверждено наличие cookie-баннеров и политик (напр. /privacy-policy). Однако, <strong>юридический фокус смещен на механику их работы</strong> (чекбоксы в формах и блокировку скриптов до согласия).</p>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="flex-grow flex flex-col gap-6 overflow-hidden">
+            
+            <!-- Visual Summary Section -->
+            <div class="bg-white rounded-xl shadow-sm border border-stone-200 p-6">
+                <div class="mb-6 flex justify-between items-end">
+                    <div>
+                        <h2 class="text-lg font-bold text-stone-800">Обзор уровня уязвимости</h2>
+                        <p class="text-sm text-stone-500 mt-1" id="current-view-text">Контекст: Все домены</p>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Chart 1: Risk Distribution -->
+                    <div class="flex flex-col items-center bg-stone-50 p-4 rounded-lg border border-stone-100">
+                        <h3 class="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Оценка тяжести рисков</h3>
+                        <div class="chart-container">
+                            <canvas id="riskChart"></canvas>
+                        </div>
+                    </div>
+                    <!-- Chart 2: Category Breakdown -->
+                    <div class="flex flex-col items-center bg-stone-50 p-4 rounded-lg border border-stone-100">
+                        <h3 class="text-xs font-bold text-stone-500 uppercase tracking-wider mb-2">Локализация проблем</h3>
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Detailed Interactive Tabs -->
+            <div class="bg-white rounded-xl shadow-sm border border-stone-200 flex flex-col overflow-hidden">
+                <div class="flex border-b border-stone-200 bg-stone-50 overflow-x-auto">
+                    <button class="tab-btn active px-6 py-4 text-sm focus:outline-none whitespace-nowrap" data-target="section-forms">📋 Формы (Критично)</button>
+                    <button class="tab-btn px-6 py-4 text-sm text-stone-600 focus:outline-none whitespace-nowrap" data-target="section-cookies">🍪 Cookies & Трекеры</button>
+                    <button class="tab-btn px-6 py-4 text-sm text-stone-600 focus:outline-none whitespace-nowrap" data-target="section-docs">📄 Документы</button>
+                    <button class="tab-btn px-6 py-4 text-sm text-stone-600 focus:outline-none whitespace-nowrap" data-target="section-plan">🚀 План действий</button>
+                </div>
+
+                <div class="p-0">
+                    
+                    <!-- B. Forms (Moved to first place due to criticality) -->
+                    <div id="section-forms" class="tab-content block p-6">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-bold text-stone-800">Анализ точек сбора ПДн</h3>
+                            <p class="text-sm text-stone-600 mt-1">Отсутствие чекбокса в формах со СНИЛС или медицинскими данными — это нарушение, ведущее к немедленным штрафам. Наличие страницы политики не спасает, если на неё нет ссылки рядом с кнопкой отправки.</p>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="uppercase tracking-wider text-xs text-stone-500 border-b border-stone-200">
+                                    <tr>
+                                        <th class="px-4 py-3 font-semibold w-1/4">URL / Назначение формы</th>
+                                        <th class="px-4 py-3 font-semibold w-1/4">Собираемые поля</th>
+                                        <th class="px-4 py-3 font-semibold">Механика согласия</th>
+                                        <th class="px-4 py-3 font-semibold">Риск</th>
+                                        <th class="px-4 py-3 font-semibold w-1/3">Рекомендация эксперта</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-stone-700 divide-y divide-stone-100" id="forms-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- D. Cookies & Trackers -->
+                    <div id="section-cookies" class="tab-content hidden p-6">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-bold text-stone-800">Анализ Cookie-баннеров и Трекеров</h3>
+                            <p class="text-sm text-stone-600 mt-1">Наличие баннеров <strong>подтверждено на всех 3-х доменах</strong>. Однако, практика РКН требует активного согласия. Информационные плашки («продолжая использовать сайт...») больше не защищают от штрафов.</p>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="uppercase tracking-wider text-xs text-stone-500 border-b border-stone-200">
+                                    <tr>
+                                        <th class="px-4 py-3 font-semibold">Домен / Сервис</th>
+                                        <th class="px-4 py-3 font-semibold">Тип</th>
+                                        <th class="px-4 py-3 font-semibold">Текущая логика</th>
+                                        <th class="px-4 py-3 font-semibold">Риск</th>
+                                        <th class="px-4 py-3 font-semibold">Рекомендация эксперта</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-stone-700 divide-y divide-stone-100" id="cookies-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- C. Docs -->
+                    <div id="section-docs" class="tab-content hidden p-6">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-bold text-stone-800">Ревизия правовых документов</h3>
+                            <p class="text-sm text-stone-600 mt-1">Документы присутствуют, но требуют структурных и технических улучшений для полного соответствия актуальным требованиям.</p>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="min-w-full text-left text-sm">
+                                <thead class="uppercase tracking-wider text-xs text-stone-500 border-b border-stone-200">
+                                    <tr>
+                                        <th class="px-4 py-3 font-semibold w-1/4">Документ</th>
+                                        <th class="px-4 py-3 font-semibold">Наличие / URL</th>
+                                        <th class="px-4 py-3 font-semibold w-1/3">Выявленные нюансы</th>
+                                        <th class="px-4 py-3 font-semibold w-1/3">Рекомендация эксперта</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-stone-700 divide-y divide-stone-100" id="docs-tbody"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- G. Action Plan -->
+                    <div id="section-plan" class="tab-content hidden p-6 bg-stone-50">
+                        <div class="mb-4">
+                            <h3 class="text-lg font-bold text-stone-800">Стратегия исправления (Приоритезированная)</h3>
+                            <p class="text-sm text-stone-600 mt-1">Конкретные задачи для технической и юридической команд. Начните с красного блока.</p>
+                        </div>
+                        <div id="plan-container" class="space-y-4"></div>
+                    </div>
+
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Application State & Logic -->
+    <script>
+        // --- 1. Verified & Actualized Data Source ---
+        // Refined based on multiple checks: acknowledging existing cookie banners and specific policy URLs, 
+        // while escalating the risks of SNILS/Medical data and passive cookie consent.
+        const auditData = {
+            domains: ['npfprof.ru', 'am-ese.ru', 'elementallab.ru'],
+            forms: [
+                // npfprof.ru
+                { domain: 'npfprof.ru', url: '/ops/transition/... (Переход в фонд)', fields: 'ФИО, <b>СНИЛС</b>, телефон', checkbox: 'Не обнаружено', risk: 'Критичный', fix: 'СНИЛС — жесткий идентификатор. СРОЧНО внедрить пустой чекбокс согласия. Запретить отправку формы без него.' },
+                { domain: 'npfprof.ru', url: '/faq/form1.php (Правопреемники)', fields: 'ФИО, даты, <b>сканы документов</b>', checkbox: 'Не обнаружено', risk: 'Критичный', fix: 'Сбор сканов паспортов/свидетельств требует отдельной формы согласия и защищенного канала передачи.' },
+                { domain: 'npfprof.ru', url: '/npo/... (Договоры)', fields: 'ФИО, телефон, email', checkbox: 'Не обнаружено', risk: 'Высокий', fix: 'Добавить стандартный пустой чекбокс со ссылкой на Политику.' },
+                // elementallab.ru
+                { domain: 'elementallab.ru', url: '/ Квиз "Тело"', fields: '<b>Данные о здоровье</b> (пищеварение и т.д.)', checkbox: 'Отсутствует ДО начала', risk: 'Критичный', fix: 'Спец. категория ПДн! Требуется явное, отдельное согласие (с галочкой) ПЕРЕД первым вопросом квиза.' },
+                { domain: 'elementallab.ru', url: '/ Подписка', fields: 'Email', checkbox: 'Нет явного чекбокса', risk: 'Высокий', fix: 'Разделить согласия: внедрить 2 пустых чекбокса. Один на ПДн (ссылка на /approval), второй на рекламу (ссылка на /advertisement).' },
+                { domain: 'elementallab.ru', url: '/ Заказ', fields: 'Имя, телефон', checkbox: 'Да ("Я согласен с политикой...")', risk: 'Средний', fix: 'Политика — это инфо-документ. Заменить текст на: "Даю согласие на обработку ПДн и ознакомлен с Политикой".' },
+                // am-ese.ru
+                { domain: 'am-ese.ru', url: 'Формы обратной связи', fields: 'Защищено от авто-парсинга', checkbox: 'Требует проверки', risk: 'Ручная проверка', fix: 'Провести ручной аудит: убедиться, что ни в одной форме нет предпроставленных (уже отмеченных) галочек.' }
+            ],
+            docs: [
+                { domain: 'npfprof.ru', name: 'Политика обработки ПДн', status: '✅ Да (PDF формат)', issues: 'PDF не адаптивен для мобильных устройств, что ухудшает пользовательский опыт.', fix: 'Переверстать PDF в полноценную HTML-страницу. Проверить актуальность сроков хранения по целям.' },
+                { domain: 'npfprof.ru', name: 'Согласие на cookies', status: '✅ Да (Страница /cookies/)', issues: 'Наличие страницы — отличная практика. Нужно проверить техническую реализацию баннера.', fix: 'Связать баннер с этой страницей. Дать возможность отказаться от необязательных cookies.' },
+                { domain: 'elementallab.ru', name: 'Политика обработки ПДн', status: '✅ Да (/privacy-policy)', issues: 'Документ есть, но ссылки на него не интегрированы в некоторые формы.', fix: 'Продублировать ссылку на /privacy-policy в сквозной футер (подвал) сайта и под каждую форму.' },
+                { domain: 'elementallab.ru', name: 'Согласия (ПДн, Реклама)', status: '✅ Да (/approval, /advertisement)', issues: 'Изолированные документы. Формулировки внутри могут ссылаться на "пассивные" действия.', fix: 'Исключить из текстов фразу "нажатие кнопки приравнивается к согласию". Привязать к чекбоксам.' },
+                { domain: 'am-ese.ru', name: 'Правовые документы', status: 'Блок ботов', issues: 'Сайт не отдал данные автоматическому скрипту.', fix: 'Вручную проверить наличие Политики в футере и актуальность её редакции.' }
+            ],
+            cookies: [
+                { domain: 'elementallab.ru', service: 'Яндекс.Метрика / Пиксели', type: 'Аналитика', status: 'Пассивное согласие', risk: 'Высокий', fix: 'Текст "продолжая использовать сайт..." больше не легитимен. Перевести баннер в режим Opt-in (блокировать аналитику до нажатия "Принять").' },
+                { domain: 'npfprof.ru', service: 'Яндекс.Метрика', type: 'Аналитика', status: 'Баннер подтвержден', risk: 'Средний', fix: 'Провести технический тест: открыть сайт в режиме инкогнито и проверить Network в DevTools. Метрика не должна стартовать без клика.' },
+                { domain: 'am-ese.ru', service: 'Трекеры аналитики', type: 'Скрипты', status: 'Баннер подтвержден', risk: 'Ручная проверка', fix: 'Аналогично npfprof.ru, проверить техническую настройку блокировки скриптов до получения согласия.' }
+            ],
+            plan: [
+                { priority: 'Срочно (Высокий риск штрафа)', lvl: 1, domain: 'npfprof.ru', task: 'Внедрить пустые чекбоски согласия на страницы сбора СНИЛС и загрузки файлов. Это критические идентификаторы.', who: 'Разработчик + Юрист' },
+                { priority: 'Срочно (Высокий риск штрафа)', lvl: 1, domain: 'elementallab.ru', task: 'Внедрить явное согласие ПЕРЕД медицинским квизом. Данные о здоровье — специальная категория ПДн.', who: 'Разработчик + Юрист' },
+                
+                { priority: 'Высокий приоритет', lvl: 2, domain: 'elementallab.ru', task: 'Изменить логику cookie-баннера. Убрать "пассивное согласие", сделать блокировку скриптов аналитики до явного клика "Принять".', who: 'Разработчик' },
+                { priority: 'Высокий приоритет', lvl: 2, domain: 'elementallab.ru', task: 'В форме подписки внедрить два раздельных пустых чекбокса: на обработку ПДн и на получение рекламы.', who: 'Разработчик' },
+                { priority: 'Высокий приоритет', lvl: 2, domain: 'am-ese.ru', task: 'Провести полный ручной аудит форм обратной связи и футера (сайт блокирует авто-проверки).', who: 'Отдел ИБ' },
+                
+                { priority: 'Средний приоритет', lvl: 3, domain: 'npfprof.ru', task: 'Перевести Политику из PDF в формат обычной HTML-страницы для обеспечения доступности с мобильных устройств.', who: 'Контент-менеджер' },
+                { priority: 'Средний приоритет', lvl: 3, domain: 'Все домены', task: 'Провести контрольную закупку/отправку всех форм, проверяя, что данные не улетают в CRM без поставленной галочки.', who: 'QA / Тестировщик' }
+            ]
+        };
+
+        // --- 2. Application State & Event Setup ---
+        let currentDomain = 'all';
+        let charts = { risk: null, category: null };
+
+        const domainBtns = document.querySelectorAll('.domain-btn');
+        const tabBtns = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('.tab-content');
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderApp();
+            
+            // Domain Filtering
+            domainBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    domainBtns.forEach(b => {
+                        b.classList.remove('bg-stone-100', 'text-stone-800', 'font-semibold');
+                        b.classList.add('hover:bg-stone-50', 'text-stone-600');
+                    });
+                    const target = e.currentTarget;
+                    target.classList.add('bg-stone-100', 'text-stone-800', 'font-semibold');
+                    target.classList.remove('hover:bg-stone-50', 'text-stone-600');
+                    
+                    currentDomain = target.getAttribute('data-domain');
+                    document.getElementById('current-view-text').innerText = `Контекст: ${target.innerText.replace(/[^\w\.\-\s]/g, '').trim()}`;
+                    renderApp();
+                });
+            });
+
+            // Tab Navigation
+            tabBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    tabBtns.forEach(b => {
+                        b.classList.remove('active');
+                        b.classList.add('text-stone-600');
+                    });
+                    const target = e.currentTarget;
+                    target.classList.add('active');
+                    target.classList.remove('text-stone-600');
+
+                    const targetContent = target.getAttribute('data-target');
+                    tabContents.forEach(content => {
+                        content.classList.add('hidden');
+                        if(content.id === targetContent) {
+                            content.classList.remove('hidden');
+                            content.classList.add('block');
+                        }
+                    });
+                });
+            });
+        });
+
+        // --- 3. Core Logic ---
+        function renderApp() {
+            updateCharts();
+            renderTables();
+            renderPlan();
+        }
+
+        function filterData(array) {
+            if (currentDomain === 'all') return array;
+            return array.filter(item => item.domain === currentDomain || item.domain === 'Все домены');
+        }
+
+        // --- 4. Chart.js Implementation ---
+        function updateCharts() {
+            const forms = filterData(auditData.forms);
+            const docs = filterData(auditData.docs);
+            const cookies = filterData(auditData.cookies);
+
+            // Risk Aggregation
+            let rCount = { 'Критичный': 0, 'Высокий': 0, 'Средний': 0, 'Ручная проверка': 0 };
+            const countRisk = (arr) => arr.forEach(i => { if(rCount[i.risk] !== undefined) rCount[i.risk]++; });
+            
+            countRisk(forms);
+            countRisk(cookies);
+            docs.forEach(d => { if(d.status.includes('Блок')) rCount['Ручная проверка']++; else rCount['Средний']++; });
+
+            if (charts.risk) charts.risk.destroy();
+            if (charts.category) charts.category.destroy();
+
+            Chart.defaults.font.family = "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif";
+            Chart.defaults.color = '#57534e';
+
+            // Risk Chart (Doughnut)
+            const ctxRisk = document.getElementById('riskChart').getContext('2d');
+            charts.risk = new Chart(ctxRisk, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Критичный', 'Высокий', 'Средний', 'Ручной аудит'],
+                    datasets: [{
+                        data: [rCount['Критичный'], rCount['Высокий'], rCount['Средний'], rCount['Ручная проверка']],
+                        backgroundColor: ['#e11d48', '#d97706', '#ca8a04', '#a8a29e'],
+                        borderWidth: 2,
+                        borderColor: '#fafaf9'
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { 
+                        legend: { position: 'right', labels: { boxWidth: 12, padding: 15 } },
+                        tooltip: { backgroundColor: 'rgba(28, 25, 23, 0.9)' }
+                    },
+                    cutout: '70%'
+                }
+            });
+
+            // Category Chart (Bar)
+            let catCounts = { 'Проблемы Форм': forms.length, 'Документы': docs.length, 'Логика Cookies': cookies.length };
+            const ctxCat = document.getElementById('categoryChart').getContext('2d');
+            charts.category = new Chart(ctxCat, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(catCounts),
+                    datasets: [{
+                        data: Object.values(catCounts),
+                        backgroundColor: ['#0d9488', '#0284c7', '#6366f1'],
+                        borderRadius: 4,
+                        barPercentage: 0.6
+                    }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { backgroundColor: 'rgba(28, 25, 23, 0.9)' } },
+                    scales: { 
+                        y: { beginAtZero: true, ticks: { stepSize: 1 }, grid: { color: '#e7e5e4' }, border: { display: false } }, 
+                        x: { grid: { display: false }, border: { display: false } } 
+                    }
+                }
+            });
+        }
+
+        // --- 5. Data Table Rendering ---
+        function getRiskBadge(r) {
+            if(r.includes('Критичный')) return `<span class="badge badge-critical">Критичный</span>`;
+            if(r.includes('Высокий')) return `<span class="badge badge-high">Высокий</span>`;
+            if(r.includes('Средний')) return `<span class="badge badge-medium">Средний</span>`;
+            if(r.includes('Ручная')) return `<span class="badge badge-manual">Требует проверки</span>`;
+            return `<span class="badge badge-manual">${r}</span>`;
+        }
+
+        function renderTables() {
+            // B. Forms Table
+            const tbForms = document.getElementById('forms-tbody');
+            tbForms.innerHTML = '';
+            filterData(auditData.forms).forEach(item => {
+                tbForms.innerHTML += `
+                    <tr class="hover:bg-stone-50 transition-colors">
+                        <td class="px-4 py-4 align-top font-semibold text-stone-800">${item.url}<br><span class="font-normal text-xs text-stone-400 mt-1 block">${item.domain}</span></td>
+                        <td class="px-4 py-4 align-top text-sm text-stone-700 whitespace-normal leading-relaxed">${item.fields}</td>
+                        <td class="px-4 py-4 align-top text-sm font-medium ${item.checkbox.includes('Не') || item.checkbox.includes('Отсутствует') ? 'text-red-600' : 'text-stone-700'}">${item.checkbox}</td>
+                        <td class="px-4 py-4 align-top">${getRiskBadge(item.risk)}</td>
+                        <td class="px-4 py-4 align-top text-xs whitespace-normal text-stone-600 bg-stone-50/50 leading-relaxed">${item.fix}</td>
+                    </tr>
+                `;
+            });
+
+            // D. Cookies Table
+            const tbCookies = document.getElementById('cookies-tbody');
+            tbCookies.innerHTML = '';
+            filterData(auditData.cookies).forEach(item => {
+                tbCookies.innerHTML += `
+                    <tr class="hover:bg-stone-50 transition-colors">
+                        <td class="px-4 py-4 align-top font-semibold text-stone-800">${item.service}<br><span class="font-normal text-xs text-stone-400 mt-1 block">${item.domain}</span></td>
+                        <td class="px-4 py-4 align-top text-xs"><span class="bg-stone-100 text-stone-600 px-2 py-1 rounded font-medium">${item.type}</span></td>
+                        <td class="px-4 py-4 align-top text-sm font-medium ${item.status.includes('Пассивное') ? 'text-amber-600' : 'text-stone-700'}">${item.status}</td>
+                        <td class="px-4 py-4 align-top">${getRiskBadge(item.risk)}</td>
+                        <td class="px-4 py-4 align-top text-xs whitespace-normal text-stone-600 leading-relaxed">${item.fix}</td>
+                    </tr>
+                `;
+            });
+
+            // C. Docs Table
+            const tbDocs = document.getElementById('docs-tbody');
+            tbDocs.innerHTML = '';
+            filterData(auditData.docs).forEach(item => {
+                tbDocs.innerHTML += `
+                    <tr class="hover:bg-stone-50 transition-colors">
+                        <td class="px-4 py-4 align-top font-semibold text-stone-800">${item.name}<br><span class="font-normal text-xs text-stone-400 mt-1 block">${item.domain}</span></td>
+                        <td class="px-4 py-4 align-top text-sm font-medium text-stone-700">${item.status}</td>
+                        <td class="px-4 py-4 align-top text-xs whitespace-normal text-stone-600 leading-relaxed">${item.issues}</td>
+                        <td class="px-4 py-4 align-top text-xs whitespace-normal text-teal-700 font-medium leading-relaxed">${item.fix}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        // --- 6. Action Plan Rendering ---
+        function renderPlan() {
+            const container = document.getElementById('plan-container');
+            container.innerHTML = '';
+            const plan = filterData(auditData.plan);
+            
+            if(plan.length === 0) { container.innerHTML = '<p class="text-stone-500">Нет задач для отображения.</p>'; return; }
+
+            let curLvl = 0;
+            // Styling maps based on priority level
+            const colors = {
+                1: 'border-l-4 border-rose-500 bg-rose-50/30', 
+                2: 'border-l-4 border-amber-500 bg-amber-50/30', 
+                3: 'border-l-4 border-yellow-400 bg-yellow-50/30'
+            };
+            
+            plan.sort((a, b) => a.lvl - b.lvl).forEach(item => {
+                if (item.lvl !== curLvl) {
+                    curLvl = item.lvl;
+                    container.innerHTML += `<h4 class="font-bold text-xs uppercase text-stone-400 tracking-wider mt-8 mb-3">${item.priority}</h4>`;
+                }
+                container.innerHTML += `
+                    <div class="bg-white p-5 rounded shadow-sm border border-stone-100 ${colors[curLvl]} mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:shadow-md">
+                        <div class="flex-grow">
+                            <p class="font-medium text-stone-800 text-sm leading-relaxed">${item.task}</p>
+                            <div class="mt-2 text-xs font-medium text-stone-400 uppercase tracking-wide">
+                                🎯 Домен: <span class="text-stone-600 mr-4">${item.domain}</span>
+                            </div>
+                        </div>
+                        <div class="text-xs bg-stone-100 text-stone-600 px-3 py-1.5 rounded-full whitespace-nowrap font-bold flex-shrink-0">
+                            👤 ${item.who}
+                        </div>
+                    </div>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
+
+```
